@@ -4,7 +4,7 @@
       <Button type="primary" icon="md-locate" @click="getLocalCity()"></Button>
       <Button type="error" icon="md-alert" @click="showEvents()"></Button>
       <Button type="primary" icon="md-car" @click="reviewTrack()"></Button>
-      <Button type="primary" icon="md-planet" @click="show3DEarth()"></Button>
+      <Button type="primary" icon="md-planet" @click="showEarth()"></Button>
       <Button icon="md-refresh" @click="resetMap()"></Button>
     </div>
     <ButtonGroup type="button" class="guiji" v-if="showTrack">
@@ -13,6 +13,9 @@
       <Button type="primary" @click="_CarTrack.stop()">结束</Button>
     </ButtonGroup>
     <div :id="tdtMapDivID" :style="mapStyle"></div>
+    <Modal v-model="fullscreenModal" fullscreen title="三维地球" footer-hide id="fullscreen">
+      <div id="map3D" :style="mapStyle"></div>
+    </Modal>
   </div>
 </template>
 
@@ -23,7 +26,7 @@ export default {
   name: 'TdtMap',
   data() {
     return {
-      tdtMapDivID: "tdtMapDivID_" + this._uid,
+      tdtMapDivID: 'tdtMapDivID',
       map: {},
       localData: {},
       mapStyle: {
@@ -223,6 +226,7 @@ export default {
       showTrack: false,
       _CarTrack: {},
       tile: {},
+      fullscreenModal: false,
     }
   },
   created() {
@@ -441,6 +445,11 @@ export default {
       });
       this.showTrack = true
     },
+    showEarth() {
+      this.fullscreenModal = true
+      this.resetMap()
+      this.show3DEarth()
+    },
     show3DEarth() {
       let token = 'ada6b27844c65dcceb43cea14caf5b88';
       // 服务域名
@@ -449,11 +458,20 @@ export default {
       let subdomains = ['0', '1', '2', '3', '4', '5', '6', '7'];
 
       // cesium 初始化
-      let viewer = new Cesium.Map('tdtMapDivID', {
+      let viewer = new Cesium.Map('map3D', {
         shouldAnimate: true,
         selectionIndicator: true,
         infoBox: false
       });
+
+      // 抗锯齿
+      viewer.scene.postProcessStages.fxaa.enabled=false;
+      // 水雾特效
+      viewer.scene.globe.showGroundAtmosphere = true;
+      // 设置最大俯仰角，[-90,0]区间内，默认为-30，单位弧度
+      viewer.scene.screenSpaceCameraController.constrainedPitch = Cesium.Math.toRadians(-20);
+      // 取消默认的双击事件
+      viewer.cesiumWidget.screenSpaceEventHandler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
 
       // 叠加影像服务
       let imgMap = new Cesium.UrlTemplateImageryProvider({
@@ -487,7 +505,7 @@ export default {
 
       // 将三维球定位到中国
       viewer.camera.flyTo({
-        destination: Cesium.Cartesian3.fromDegrees(103.84, 31.15, 17850000),
+        destination: Cesium.Cartesian3.fromDegrees(108.93949000006, 34.26634500012, 17850000),
         orientation: {
           heading: Cesium.Math.toRadians(348.4202942851978),
           pitch: Cesium.Math.toRadians(-89.74026687972041),
@@ -553,53 +571,8 @@ export default {
       wtfs.getIcoUrl = function () {
         return tdtUrl + 'mapservice/GetIcon?id={id}&tk=' + token;
       }
-
-      wtfs.initTDT([{"x": 6, "y": 1, "level": 2, "boundBox": {"minX": 90, "minY": 0, "maxX": 135, "maxY": 45}}, {
-        "x": 7,
-        "y": 1,
-        "level": 2,
-        "boundBox": {"minX": 135, "minY": 0, "maxX": 180, "maxY": 45}
-      }, {"x": 6, "y": 0, "level": 2, "boundBox": {"minX": 90, "minY": 45, "maxX": 135, "maxY": 90}}, {
-        "x": 7,
-        "y": 0,
-        "level": 2,
-        "boundBox": {"minX": 135, "minY": 45, "maxX": 180, "maxY": 90}
-      }, {"x": 5, "y": 1, "level": 2, "boundBox": {"minX": 45, "minY": 0, "maxX": 90, "maxY": 45}}, {
-        "x": 4,
-        "y": 1,
-        "level": 2,
-        "boundBox": {"minX": 0, "minY": 0, "maxX": 45, "maxY": 45}
-      }, {"x": 5, "y": 0, "level": 2, "boundBox": {"minX": 45, "minY": 45, "maxX": 90, "maxY": 90}}, {
-        "x": 4,
-        "y": 0,
-        "level": 2,
-        "boundBox": {"minX": 0, "minY": 45, "maxX": 45, "maxY": 90}
-      }, {"x": 6, "y": 2, "level": 2, "boundBox": {"minX": 90, "minY": -45, "maxX": 135, "maxY": 0}}, {
-        "x": 6,
-        "y": 3,
-        "level": 2,
-        "boundBox": {"minX": 90, "minY": -90, "maxX": 135, "maxY": -45}
-      }, {"x": 7, "y": 2, "level": 2, "boundBox": {"minX": 135, "minY": -45, "maxX": 180, "maxY": 0}}, {
-        "x": 5,
-        "y": 2,
-        "level": 2,
-        "boundBox": {"minX": 45, "minY": -45, "maxX": 90, "maxY": 0}
-      }, {"x": 4, "y": 2, "level": 2, "boundBox": {"minX": 0, "minY": -45, "maxX": 45, "maxY": 0}}, {
-        "x": 3,
-        "y": 1,
-        "level": 2,
-        "boundBox": {"minX": -45, "minY": 0, "maxX": 0, "maxY": 45}
-      }, {"x": 3, "y": 0, "level": 2, "boundBox": {"minX": -45, "minY": 45, "maxX": 0, "maxY": 90}}, {
-        "x": 2,
-        "y": 0,
-        "level": 2,
-        "boundBox": {"minX": -90, "minY": 45, "maxX": -45, "maxY": 90}
-      }, {"x": 0, "y": 1, "level": 2, "boundBox": {"minX": -180, "minY": 0, "maxX": -135, "maxY": 45}}, {
-        "x": 1,
-        "y": 0,
-        "level": 2,
-        "boundBox": {"minX": -135, "minY": 45, "maxX": -90, "maxY": 90}
-      }, {"x": 0, "y": 0, "level": 2, "boundBox": {"minX": -180, "minY": 45, "maxX": -135, "maxY": 90}}]);
+	
+	    wtfs.initTDT([{"x":6,"y":1,"level":2,"boundBox":{"minX":90,"minY":0,"maxX":135,"maxY":45}},{"x":7,"y":1,"level":2,"boundBox":{"minX":135,"minY":0,"maxX":180,"maxY":45}},{"x":6,"y":0,"level":2,"boundBox":{"minX":90,"minY":45,"maxX":135,"maxY":90}},{"x":7,"y":0,"level":2,"boundBox":{"minX":135,"minY":45,"maxX":180,"maxY":90}},{"x":5,"y":1,"level":2,"boundBox":{"minX":45,"minY":0,"maxX":90,"maxY":45}},{"x":4,"y":1,"level":2,"boundBox":{"minX":0,"minY":0,"maxX":45,"maxY":45}},{"x":5,"y":0,"level":2,"boundBox":{"minX":45,"minY":45,"maxX":90,"maxY":90}},{"x":4,"y":0,"level":2,"boundBox":{"minX":0,"minY":45,"maxX":45,"maxY":90}},{"x":6,"y":2,"level":2,"boundBox":{"minX":90,"minY":-45,"maxX":135,"maxY":0}},{"x":6,"y":3,"level":2,"boundBox":{"minX":90,"minY":-90,"maxX":135,"maxY":-45}},{"x":7,"y":2,"level":2,"boundBox":{"minX":135,"minY":-45,"maxX":180,"maxY":0}},{"x":5,"y":2,"level":2,"boundBox":{"minX":45,"minY":-45,"maxX":90,"maxY":0}},{"x":4,"y":2,"level":2,"boundBox":{"minX":0,"minY":-45,"maxX":45,"maxY":0}},{"x":3,"y":1,"level":2,"boundBox":{"minX":-45,"minY":0,"maxX":0,"maxY":45}},{"x":3,"y":0,"level":2,"boundBox":{"minX":-45,"minY":45,"maxX":0,"maxY":90}},{"x":2,"y":0,"level":2,"boundBox":{"minX":-90,"minY":45,"maxX":-45,"maxY":90}},{"x":0,"y":1,"level":2,"boundBox":{"minX":-180,"minY":0,"maxX":-135,"maxY":45}},{"x":1,"y":0,"level":2,"boundBox":{"minX":-135,"minY":45,"maxX":-90,"maxY":90}},{"x":0,"y":0,"level":2,"boundBox":{"minX":-180,"minY":45,"maxX":-135,"maxY":90}}]);
     },
     resetMap() {
       if (this.map) {
@@ -619,6 +592,7 @@ export default {
   }
 }
 </script>
+<style src="./assets/app.css"></style>
 
 <style scoped>
 .btns .ivu-btn {

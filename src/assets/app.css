@@ -1,0 +1,4 @@
+.ivu-modal-body {
+    padding: unset !important;
+    overflow: hidden !important;
+}
